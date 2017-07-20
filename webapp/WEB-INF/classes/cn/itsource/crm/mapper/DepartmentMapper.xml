@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.DepartmentMapper">
+
+	<select id="save" parameterType="Department">
+		insert into
+		t_department(name,sn,dirPath,state,manager_id,parent_id)
+		values(#{name},#{sn},#{dirPath},#{state},#{manager.id},#{parent.id})
+	</select>
+
+	<update id="update" parameterType="Department">
+		update t_department set
+		name=#{name},sn=#{sn},dirPath=#{dirPath},manager_id=#{manager.id},parent_id=#{parent.id},state=#{state}
+		where id=#{id}
+	</update>
+	<update id="updateState" parameterType="Department">
+		update t_department set
+		state=#{state}
+		where id=#{id}
+	</update>
+
+	<delete id="delete" parameterType="long">
+		delete from t_department where
+		id=#{id}
+	</delete>
+
+	<select id="get" parameterType="long" resultType="Department">
+		select * from
+		t_department where id=#{id}
+	</select>
+
+	<!-- 基本不用getAll，全部使用findByQuery() -->
+	<select id="getAll" resultType="Department">
+		select d.* from t_department d
+	</select>
+
+	<!-- 公共的sql语句 -->
+	<sql id="commonSql">
+		from t_department d left join t_department p on
+		d.parent_id=p.id left
+		join t_employee e on d.manager_id=e.id 
+		<where>
+			<!-- 部门的name和sn属性进行like查询 -->
+			<if test="keyword!=null and keyword!=''">
+				and (d.name like concat('%',#{keyword},'%') or d.sn like
+				concat('%',#{keyword},'%'))
+			</if>
+			<if test="q!=null and q!=''">
+				and (d.name like concat('%',#{q},'%') or d.sn like
+				concat('%',#{q},'%'))
+			</if>
+			<if test="dirPath!=null and dirPath!=''">
+				and d.dirPath like concat('%',#{dirPath},'%')
+			</if>
+			<if test="state!=null and state!='-1'">
+				and d.state=#{state}
+			</if>
+			<if test="parentId!=null and parentId!=-1">
+				and d.parent_id=#{parentId}
+			</if>
+			<if test="managerId!=null and managerId!=-1">
+				and d.manager_id=#{managerId}
+			</if>
+			<if test="dirPath!=null">
+				and d.dirPath like #{dirPath}
+			</if>
+		</where>
+	</sql>
+
+	<!-- 总记录数查询 -->
+	<select id="findCountByQuery" resultType="int" parameterType="DepartmentQuery">
+		select count(d.id)
+		<include refid="commonSql" />
+	</select>
+
+	<!-- 分页查询 -->
+	<!-- limit -->
+	<select id="findLimitByQuery" resultMap="departmentResultMap"
+		parameterType="DepartmentQuery">
+		select 
+		d.id,d.sn,d.name,d.dirPath,d.state,
+		p.id pid,p.name pname,
+		e.id eid,e.realName realName
+		<include refid="commonSql" />
+		order by ${sort} ${order}
+		limit #{begin},#{end}
+	</select>
+	<resultMap type="Department" id="departmentResultMap">
+		<!-- 处理多方 -->
+		<id property="id" column="id" />
+		<result property="sn" column="sn" />
+		<result property="name" column="name" />
+		<result property="dirPath" column="dirPath" />
+		<result property="state" column="state" />
+		<!-- 处理一方:parent_id (department.parent.id)-->
+		<association property="parent" javaType="Department" >
+			<id property="id" column="pid" />
+			<result property="name" column="pname" />
+		</association>
+		<!-- 处理一方:manager_id (department.manager.id) -->
+		<association property="manager" javaType="Employee">
+			<id property="id" column="eid" />
+			<result property="realName" column="realName"/>
+		</association>
+	</resultMap>
+	<select id="getParentTreeData" resultMap="departmentParentTreeResultMap">
+	select d.id,d.`name`,d.dirPath,p.id pid,p.`name` pname ,p.dirPath pdirPath from t_department d join t_department p on d.id=p.parent_id
+ 	where d.parent_id  is null
+	ORDER BY d.id
+	</select>
+	<resultMap type="Department" id="departmentParentTreeResultMap">
+	<id property="id" column="id"/>
+	<result property="name" column="name"/>
+	<result property="dirPath" column="dirPath"/>
+	<collection property="children" javaType="arrayList" ofType="Department">
+	<id property="id" column="pid"/>
+	<result property="name" column="pname"/>
+	<result property="dirPath" column="pdirPath"/>
+	</collection>
+	</resultMap>
+	<!-- 获取部门的树 List<Department> getTreeByParent(); -->
+	<select id="getTreeByParent" resultType="Department">
+		SELECT d.id,d.name
+		FROM t_department d
+		where d.parent_id is null
+		select p.id,p.name,a.did,a.dname from t_department p,
+		(SELECT d.id did,d.name dname,d.parent_id from t_department d
+		where d.dirPath like '%/1%')a
+		WHERE p.id=a.parent_id
+		ORDER BY
+		p.id
+	</select>
+	
+</mapper>

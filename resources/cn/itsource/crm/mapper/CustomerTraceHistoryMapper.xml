@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.CustomerTraceHistoryMapper">
+
+	<insert id="save" parameterType="CustomerTraceHistory" useGeneratedKeys="true" keyProperty="id" >
+				insert into t_customertraceHistory
+		(traceTime,traceResult,title,remark,customer_id,traceUser_id,traceType_id)
+		values(#{traceTime},#{traceResult},#{title},#{remark},#{customer.id},#{traceUser.id},#{traceType.id})
+	</insert>
+
+	<update id="update" parameterType="CustomerTraceHistory">
+		update t_customertraceHistory set traceTime=#{traceTime},traceResult=#{traceResult},title=#{title},remark=#{remark},
+		traceUser_id=#{traceUser.id},customer_id=#{customer.id},
+		traceType_id=#{traceType.id} where id = #{id}
+	</update>
+
+	<delete id="delete" parameterType="long">
+		delete from t_customertraceHistory where
+		id=#{id}
+	</delete>
+
+	<select id="get" parameterType="long" resultType="CustomerTraceHistory">
+		select traceTime,traceResult,title,re0mark,customer_id,traceUser_id,traceType_id from
+		t_customertraceHistory o where o.id=#{id}
+	</select>
+
+	<!-- 基本不用getAll，全部使用findByQuery() -->
+	<select id="getAll" resultType="CustomerTraceHistory">
+		select o.* from t_customertraceHistory o
+	</select>
+	<!-- 通过查询条件或总的记录数 -->
+	<select id="findCountByQuery" resultType="int" parameterType="CustomerTraceHistoryQuery">
+		select
+		count(o.id) from t_customertraceHistory o
+		<include refid="commonSql" />
+	</select>
+
+	<!-- 公共sql -->
+	<select id="findLimitByQuery" parameterType="CustomerTraceHistoryQuery"  resultMap="CustomerTraceHistoryResultMap" >
+SELECT o.id,o.remark,o.title,o.traceResult,o.traceTime, c.id cId,c.name cName,e.id eId,e.realName eRealName,s.id sId,s.name sName
+from t_customertracehistory o
+		<include refid="commonSql" />
+		order by ${sort} ${order}
+		limit #{begin},#{end}
+	</select>
+	
+	<resultMap type="CustomerTraceHistory" id="CustomerTraceHistoryResultMap">
+		<!-- 处理多方 -->
+		<id property="id" column="id" />
+		<result property="remark" column="remark" />
+		<result property="title" column="title" />
+		<result property="traceResult" column="traceResult" />
+		<result property="traceTime" column="traceTime" />
+		<!-- 处理一方 负责跟进员工 -->
+		<association property="traceUser" javaType="Employee">
+			<id property="id" column="eId" />
+			<result property="realName" column="eRealName" />
+		</association>
+		<!-- 处理一方: 跟进方式-->
+		<association property="traceType" javaType="SystemDictionaryItem">
+			<id property="id" column="sId" />
+			<result property="name" column="sName" />
+		</association>
+		<!-- 处理一方: 客户来源 -->
+		<association property="customer" javaType="Customer">
+			<id property="id" column="cId" />
+			<result property="name" column="cName" />
+		</association>
+	</resultMap>
+	
+	<!-- 公共查询条件 -->
+	<sql id="commonSql">
+LEFT JOIN	t_customer c ON o.customer_id=c.id
+LEFT JOIN t_employee e ON o.traceUser_id=e.id
+LEFT JOIN t_system_dictionary_item s ON o.traceType_id=s.id
+		<where>
+			<!-- 部门的name和sn属性进行like查询 -->
+			<if test="keyword!=null and keyword!=''">
+				and (o.name like concat('%',#{keyword},'%'))
+			</if>
+			<if test="q!=null and q!=''">
+				and (o.name like concat('%',#{q},'%'))
+			</if>
+		</where>
+	</sql>
+	
+	
+</mapper>

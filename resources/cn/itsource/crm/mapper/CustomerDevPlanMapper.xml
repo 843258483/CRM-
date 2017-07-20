@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.CustomerDevPlanMapper">
+	<insert id="save" parameterType="CustomerDevPlan" useGeneratedKeys="true" keyProperty="id" >
+		insert into t_customerdevplan(planTime,planSubject,planDetails,inputTime,
+		potentialCustomer_id,inputUser_id,planType_id) values(#{planTime},#{planSubject},#{planDetails},
+		#{inputTime},#{potentialCustomer.id},#{inputUser.id},#{planType.id})
+	</insert>
+
+	<update id="update" parameterType="CustomerDevPlan">
+		update t_customerdevplan set planTime=#{planTime},planSubject=#{planSubject},planDetails=#{planDetails},
+		inputTime=#{inputTime},potentialCustomer_id=#{potentialCustomer.id},
+		inputUser_id=#{inputUser.id},planType_id=#{planType.id} where id = #{id}
+	</update>
+
+	
+	<delete id="deletePlan" parameterType="long">
+		delete from t_customerdevplan where
+		potentialCustomer_id=#{id}
+	</delete>
+	
+	<delete id="delete" parameterType="long">
+		delete from t_customerdevplan where
+		id=#{id}
+	</delete>
+
+	<select id="get" parameterType="long" resultType="CustomerDevPlan">
+		select * from t_customerdevplan where id=#{id}
+	</select>
+
+	<!-- 基本不用getAll，全部使用findByQuery() -->
+	<select id="getAll" resultType="CustomerDevPlan">
+		select o.* from t_customerdevplan o
+	</select>
+	
+	<select id="findCountByQuery" resultType="int" parameterType="CustomerDevPlanQuery">
+		select
+		count(o.id) from t_customerdevplan o
+		<include refid="commonSql" />
+	</select>
+
+	<!-- 公共sql -->
+	<select id="findLimitByQuery" parameterType="CustomerDevPlanQuery"  resultMap="CustomerDevPlanResultMap" >
+			select o.id,o.inputTime,o.planDetails,o.planTime,o.planSubject,
+			s.id sId,s.name sName,e.id eId,e.realName eRealName,p.id pId,p.name pName
+			FROM t_customerdevplan o 
+		<include refid="commonSql" />
+		limit #{begin},#{end}
+	</select>
+	
+	<resultMap type="CustomerDevPlan" id="CustomerDevPlanResultMap">
+		<!-- 处理多方 -->
+		<id property="id" column="id" />
+		<result property="planSubject" column="planSubject" />
+		<result property="planDetails" column="planDetails" />
+		<result property="inputTime" column="inputTime" />
+		<result property="planTime" column="planTime" />
+		<!-- 处理一方 记录员 -->
+		<association property="inputUser" javaType="Employee">
+			<id property="id" column="eId" />
+			<result property="realName" column="eRealName" />
+		</association>
+		<!-- 处理一方: 潜在客户 -->
+		<association property="potentialCustomer" javaType="PotentialCustomer">
+			<id property="id" column="pId" />
+			<result property="name" column="pName" />
+		</association>
+		<!-- 处理一方: 发展计划 -->
+		<association property="planType" javaType="SystemDictionaryItem">
+			<id property="id" column="sId" />
+			<result property="name" column="sName" />
+		</association>
+		
+	</resultMap>
+	
+	<!-- 公共查询条件 -->
+	<sql id="commonSql">
+			LEFT JOIN t_system_dictionary_item s ON o.planType_id=s.id
+			LEFT JOIN t_employee e ON o.inputUser_id=e.id
+			LEFT JOIN t_potentialcustomer p ON o.potentialCustomer_id=p.id
+		<where>
+			<!-- 部门的name和sn属性进行like查询 -->
+			<if test="keyword!=null and keyword!=''">
+				and (o.name like concat('%',#{keyword},'%'))
+			</if>
+			<if test="q!=null and q!=''">
+				and (o.name like concat('%',#{q},'%'))
+			</if>
+		</where>
+	</sql>
+	
+	
+	
+	
+</mapper>

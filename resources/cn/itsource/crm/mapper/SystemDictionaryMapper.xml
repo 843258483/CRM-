@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.SystemDictionaryMapper">
+	<!-- 新增一个数据类型 -->
+	<insert id="save" parameterType="SystemDictionary" useGeneratedKeys="true" keyProperty="id">
+		insert into t_system_dictionary (name,sn,intro,state) values(#{name},#{sn},#{intro},#{state})
+	</insert>
+	<!-- 修改一个数据类型 -->
+	<update id="update" parameterType="SystemDictionary">
+		update t_system_dictionary set name = #{name},sn = #{sn},intro = #{intro},state = #{state} where id = #{id}
+	</update>
+	<!-- 删除一个数据类型 -->
+	<delete id="delete" parameterType="long">
+		delete from t_system_dictionary where id = #{id}
+	</delete>
+	<!-- 通过id查询数据字典的一条数据 -->
+	<select id="get" parameterType="long" resultType="SystemDictionary">
+		select id,name,sn,intro,state from t_system_dictionary where id = #{id}
+	</select>
+	<!-- 查询数据字典的所有数据 -->
+	<select id="getAll" resultType="SystemDictionary">
+		select id,name,sn,intro,state from t_system_dictionary 
+	</select>
+	
+	<select id="findCountByQuery" parameterType="SystemDictionaryQuery" resultType="int">
+		select count(*) from t_system_dictionary 
+		<include refid="whereSql"/> 
+	</select>
+	
+	<select id="findLimitByQuery" parameterType="SystemDictionaryQuery" resultType="SystemDictionary">
+		select id,name,sn,intro,state from t_system_dictionary
+		<include refid="whereSql"/>
+		limit #{begin},#{end} 
+	</select>
+	<sql id="whereSql">
+	<where>
+		<if test="q!=null and q!=''">
+				and (name like concat('%',#{q},'%') or sn like 
+				concat('%',#{q},'%') )
+			</if>
+	</where>
+	</sql>
+</mapper>

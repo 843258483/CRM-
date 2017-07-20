@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.SystemDictionaryItemMapper">
+	<!-- 新增一个数据类型 -->
+	<insert id="save" parameterType="SystemDictionaryItem"
+		useGeneratedKeys="true" keyProperty="id">
+		insert into t_system_dictionary_item
+		(name,intro,sequence,parent_id) values(#{name},#{intro},#{sequence},#{parent.id})
+	</insert>
+	<!-- 修改一个数据类型 -->
+	<update id="update" parameterType="SystemDictionaryItem">
+		update t_system_dictionary_item
+		set name = #{name}, intro = #{intro},sequence=#{sequence},parent_id =
+		#{parent.id} where id = #{id}
+	</update>
+	<!-- 删除一个数据类型 -->
+	<delete id="delete" parameterType="long">
+		delete from
+		t_system_dictionary_item where id = #{id}
+	</delete>
+	<!-- 通过id查询数据字典的一条数据 -->
+	<select id="get" parameterType="long" resultMap="systemDictionaryItemResultMap">
+		select id,name,sequence,intro,parent_id from t_system_dictionary_item where id = #{id}
+	</select>
+
+
+	<!-- 查询数据字典的所有数据 -->
+	<select id="getAll" resultMap="systemDictionaryItemResultMap">
+		select id,name,intro,parent_id,sequence
+		from t_system_dictionary_item
+	</select>
+	<!-- 嵌套查询，1+n -->
+	<resultMap type="SystemDictionaryItem" id="systemDictionaryItemResultMap">
+		<association property="parent"
+			select="cn.itsource.crm.mapper.SystemDictionaryMapper.get" column="parent_id">
+		</association>
+	</resultMap>
+	
+	<select id="getChildren" parameterType="long" resultType="SystemDictionaryItem">
+		select * from t_system_dictionary_item 
+		<include refid="whereSql"/>
+	</select>
+	
+	<select id="findCountByQuery" parameterType="SystemDictionaryItemQuery" resultType="int">
+		select count(*) from t_system_dictionary_item 
+		<include refid="whereSql"/>
+	</select>
+	
+	<select id="findLimitByQuery" parameterType="SystemDictionaryItemQuery" resultMap="systemDictionaryItemResultMap">
+		select id,name,intro,sequence,parent_id
+		from t_system_dictionary_item 
+		<include refid="whereSql"/>
+		limit #{begin},#{end}
+	</select>
+	<sql id="whereSql">
+	<where>
+		<if test="q!=null and q!=''">
+				and (name like concat('%',#{q},'%') or intro like concat('%',#{q},'%') or sequence like concat('%',#{q},'%'))
+			</if>
+		<if test="parentId!=null and parentId!=''">
+				and parent_id = #{parentId}
+		</if>
+		</where>
+	</sql>
+</mapper>

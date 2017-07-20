@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.CustomerMapper">
+
+	<insert id="save" parameterType="Customer" useGeneratedKeys="true" keyProperty="id" >
+		insert into t_customer (name,gender,age,tel,email,qq,wechat,inputTime,state,seller_id,inputUser_id,job_id,customerSource_id,salaryLevel_id)
+		 values(#{name},#{gender},#{age},#{tel},#{email},
+		#{qq},#{wechat},#{inputTime},#{state},#{seller.id},
+		#{inputUser.id},#{job.id},#{customerSource.id},#{salaryLevel.id})
+	</insert>
+	
+	
+	<update id="update" parameterType="Customer">
+		update t_customer set name=#{name},gender=#{gender},age=#{age},tel=#{tel},email=#{email},
+		qq=#{qq},wechat=#{wechat},inputTime=#{inputTime},
+		state=#{state},seller_id=#{seller.id},inputUser_id=#{inputUser.id},job_id=#{job.id},
+		customerSource_id=#{customerSource.id},salaryLevel_id=#{salaryLevel.id} where id = #{id}
+	</update>
+	<update id="toVIP" parameterType="long">
+		update t_customer set state=1  where id = #{id}
+	</update>
+	
+	
+	<update id="turnOver" parameterType="Customer">
+		update t_customer set seller_id=#{seller.id} where id = #{id}
+	</update>
+	
+	<update id="giveUp" parameterType="Customer">
+		update t_customer set seller_id=#{seller.id},state=#{state} where id = #{id}
+	</update>
+	
+
+	<delete id="delete" parameterType="long">
+		delete from t_customer where
+		id=#{id}
+	</delete>
+
+	<select id="get" parameterType="long" resultType="Customer">
+		select id,name,gender,age,tel,email,qq,wechat,inputTime,
+		state,seller_id,inputUser_id,job_id,customerSource_id,salaryLevel_id from
+		t_customer d where d.id=#{id}
+	</select>
+
+	<!-- 基本不用getAll，全部使用findByQuery() -->
+	<select id="getAll" resultType="Customer">
+		select d.* from t_customer d
+	</select>
+	<!-- 通过查询条件或总的记录数 -->
+	<!-- Integer findCountByQuery(BaseQuery baseQuery); -->
+	<select id="findCountByQuery" resultType="int" parameterType="CustomerQuery">
+		select
+		count(o.id) from t_customer o
+		<include refid="commonSql" />
+	</select>
+
+	<!-- 公共sql -->
+	<select id="findLimitByQuery" parameterType="CustomerQuery"  resultMap="CustomerResultMap" >
+		select o.id,o.name,o.gender,o.age,o.tel,o.email,o.qq,o.wechat,o.inputTime,o.state,
+		e.id eId,e.realName eRealName,e.state eState,em.id emId,em.realName emRealName,j.id jId,j.name jName,
+		j2.id j2Id,j2.name j2Name,j3.id j3Id,j3.name j3Name
+		from t_customer o 
+		<include refid="commonSql" />
+		limit #{begin},#{end}
+	</select>
+	
+	<resultMap type="Customer" id="CustomerResultMap">
+		<!-- 处理多方 -->
+		<id property="id" column="id" />
+		<result property="name" column="name" />
+		<result property="gender" column="gender" />
+		<result property="age" column="age" />
+		<result property="tel" column="tel" />
+		<result property="email" column="email" />
+		<result property="qq" column="qq" />
+		<result property="wechat" column="wechat" />
+		<result property="inputTime" column="inputTime" />
+		<result property="state" column="state" />
+		<!--处理一方 销售员-->
+		<association property="seller" javaType="Employee">
+			<id property="id" column="eId" />
+			<result property="realName" column="eRealName" />
+			<result property="state" column="eState" />
+		</association>
+		<!-- 处理一方 记录员 -->
+		<association property="inputUser" javaType="Employee">
+			<id property="id" column="emId" />
+			<result property="realName" column="emRealName" />
+		</association>
+		<!-- 处理一方: 客户工作 -->
+		<association property="job" javaType="SystemDictionaryItem">
+			<id property="id" column="jId" />
+			<result property="name" column="jName" />
+		</association>
+		<!-- 处理一方: 客户来源 -->
+		<association property="customerSource" javaType="SystemDictionaryItem">
+			<id property="id" column="j2Id" />
+			<result property="name" column="j2Name" />
+		</association>
+		<!-- 处理一方: 客户收入等级 -->
+		<association property="salaryLevel" javaType="SystemDictionaryItem">
+			<id property="id" column="j3Id" />
+			<result property="name" column="j3Name" />
+		</association>
+	</resultMap>
+	
+	<!-- 公共查询条件 -->
+	<sql id="commonSql">
+		LEFT JOIN t_employee e ON o.seller_id=e.id
+		LEFT JOIN t_employee em ON o.inputUser_id=em.id
+		LEFT JOIN t_system_dictionary_item j ON o.job_id=j.id
+		LEFT JOIN t_system_dictionary_item j2 ON o.customerSource_id=j2.id
+		LEFT JOIN t_system_dictionary_item j3 ON o.salaryLevel_id=j3.id
+		<where>
+			<!-- 部门的name和sn属性进行like查询 -->
+			<if test="keyword!=null and keyword!=''">
+				and (o.name like concat('%',#{keyword},'%') or o.email like concat('%',#{keyword},'%')
+				or o.wechat like concat('%',#{keyword},'%'))
+			</if>
+			<if test="q!=null and q!=''">
+				and (o.name like concat('%',#{q},'%') or o.email like concat('%',#{q},'%')
+				or o.wechat like concat('%',#{q},'%'))
+			</if>
+			<if test="state!=null and state!=-2">
+				and o.state=#{state}
+			</if>
+			<if test="maxAge!=null and maxAge!=0">
+				<![CDATA[and o.age<#{maxAge}]]>
+			</if>
+			<if test="inputTimes!=null and inputTimes!=''">
+				<![CDATA[and o.inputTime<#{inputTimes}]]>
+			</if>
+			<if test="jobId!=null and jobId!=-2">
+				and o.job_id=#{jobId}
+			</if>
+			<if test="salaryLevelId!=null and salaryLevelId!=-2">
+				and o.salaryLevel_id=#{salaryLevelId}
+			</if>
+			<if test="!isAdmin and loginUserId!=null">
+				and o.seller_id=#{loginUserId}
+			</if>
+		</where>
+	</sql>
+	
+	
+</mapper>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.GuaranteeMapper">
+	<select id="save" parameterType="Guarantee">
+		insert into t_guarantee(sn,endTime,state,customer_id,contract_id) 
+		values(#{sn},#{endTime},#{state},#{customer.id},#{contract.id})
+	</select>
+
+	<update id="update" parameterType="Guarantee">
+		update t_guarantee set 
+			sn=#{sn},endTime=#{endTime},state=#{state},customer_id=#{customer.id},contract_id=#{contract.id}
+		where id=#{id}
+	</update>
+
+	<delete id="delete" parameterType="long">
+		delete from t_guarantee where id=#{id}
+	</delete>
+	<!-- 暂时先 改成这样 后面还要改 -->
+	<select id="get" parameterType="long" resultType="Guarantee">
+		select g.* from t_guarantee g where g.id=#{id}
+	</select>
+
+	<select id="getAll" resultType="Guarantee">
+		select g.* from t_guarantee g
+	</select>
+	
+	
+	<!-- 高级查询部分 -->
+	<!-- 公共的sql语句 -->
+	<sql id="commonSql">
+		from t_guarantee o left join t_contract e on o.contract_id = e.id 
+					       left join t_customer c on o.customer_id = c.id
+		<where>
+			<!-- 订单的sn属性进行like查询 -->
+			<if test="q!=null and q!=''">
+				and o.sn like concat('%',#{q},'%') 
+			</if>
+			<!-- 根据客户的id来查询 -->
+			<if test="customerId != null and customerId != -1">
+				and o.customer_id = #{customerId}
+			</if>
+			<!-- 根据营销员的id来查询 -->
+			<if test="constractId != null and sellerId != -1">
+				and o.constract_id = #{constractId}
+			</if>
+			<if test="state!=null and state!=-1">
+				and o.state=#{state}
+			</if>
+		</where>
+	</sql>
+
+	<!-- 总记录数查询 -->
+	<select id="findCountByQuery" resultType="int" parameterType="GuaranteeQuery">
+		select count(o.id) 
+		<include refid="commonSql" />
+	</select>
+
+	<!-- 分页查询 -->
+	<!-- limit -->
+	<select id="findLimitByQuery" resultMap="guaranteeResultMap"
+		parameterType="GuaranteeQuery">
+		select o.id, o.sn, o.state, o.endTime,  
+		e.id eid, e.sn esn,c.id cid,c.name cname 
+		<include refid="commonSql" />
+		limit #{begin},#{end}
+	</select>
+
+
+	<resultMap type="Guarantee" id="guaranteeResultMap">
+		
+		<id property="id" column="id" />
+		<result property="sn" column="sn" />
+		<result property="state" column="state" />
+		<result property="endTime" column="endTime" />
+		
+		<!-- 处理一方:customer_id -->
+		<association property="customer" javaType="Customer">
+			<id property="id" column="cid" />
+			<result property="name" column="cname" />
+		</association>
+		
+		<!-- 处理一方:contract_id  -->
+		<association property="contract" javaType="Contract">
+			<id property="id" column="eid" />
+			<result property="sn" column="esn" />
+		</association>
+		
+		<!-- 处理多方：items（合同明细） -->
+		<collection property="items" select="cn.itsource.crm.mapper.GuaranteeMapper.findItemsByGuaranteeId"
+		 column="id">
+			<id property="id" column="id" />
+			<result property="guaranteeTime" column="guaranteeTime" />
+			<result property="content" column="content" />
+			<result property="solve" column="solve" />
+		</collection>
+	</resultMap>
+
+	<!-- 一对多的查询需要使用嵌套查询来分页，不然会出问题，计数会计算明细的个数 -->
+	<select id="findItemsByGuaranteeId" resultType="GuaranteeItem" parameterType="long">
+		select
+		id,guaranteeTime,content,solve from t_guarantee_item where guarantee_id=#{id}
+	</select>
+
+</mapper>

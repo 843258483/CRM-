@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.PotentialCustomerMapper">
+	<insert id="save" parameterType="PotentialCustomer" useGeneratedKeys="true" keyProperty="id">
+		insert into
+		t_potentialcustomer(name,successRate,remark,linkMan,linkManTel,inputTime,
+		inputUser_id,customerSource)
+		values(#{name},#{successRate},#{remark},#{linkMan},#{linkManTel},#{inputTime}
+		,#{inputUser.id},#{customerSource})
+	</insert>
+
+	<update id="update" parameterType="PotentialCustomer">
+		update t_potentialcustomer set
+		name=#{name},successRate=#{successRate},remark=#{remark},linkMan=#{linkMan},linkManTel=#{linkManTel}
+		,inputTime=#{inputTime},inputUser_id=#{inputUser.id},customerSource=#{customerSource}
+		where id=#{id}
+	</update>
+
+	<delete id="delete" parameterType="long">
+		delete from t_potentialcustomer where
+		id=#{id}
+	</delete>
+
+	<select id="get" parameterType="long" resultType="PotentialCustomer">
+		select o.* from
+		t_potentialcustomer o where o.id=#{id}
+	</select>
+
+	<!-- 基本不用getAll，全部使用findByQuery() -->
+	<select id="getAll" resultType="PotentialCustomer">
+		select o.* from t_potentialcustomer o
+	</select>
+
+
+
+	<!-- 公共的sql语句 -->
+	<sql id="commonSql">
+		from t_potentialcustomer o left join t_employee e ON o.inputUser_id=e.id
+		 left join t_system_dictionary_item s on o.customerSource = s.id
+		<where>
+			<!-- 部门的name和sn属性进行like查询 -->
+			<if test="keyword!=null and keyword!=''">
+				and (o.name like concat('%',#{keyword},'%'))
+			</if>
+			<if test="q!=null and q!=''">
+				and (o.name like concat('%',#{q},'%') or o.linkMan like concat('%',#{q},'%') or o.linkMan like concat('%',#{q},'%')
+				or o.remark like concat('%',#{q},'%') 
+				)
+			</if>
+			<if test="maxSuccesNum!=null and maxSuccesNum!=0">
+				<![CDATA[and o.successRate >= #{maxSuccesNum}]]>
+			</if>
+			<if test="mixSuccesNum!=null and mixSuccesNum!=0">
+				<![CDATA[and o.successRate <= #{mixSuccesNum}]]>
+			</if>
+			<if test="sourceId!=null and sourceId!=''">
+				and o.customerSource = #{sourceId}
+			</if>
+		</where>
+	</sql>
+
+	<!-- 总记录数查询 -->
+	<select id="findCountByQuery" resultType="int" parameterType="PotentialCustomerQuery">
+		select count(o.id)
+		<include refid="commonSql" />
+	</select>
+
+	<!-- 分页查询 -->
+	<!-- limit -->
+	<select id="findLimitByQuery" resultMap="potentialCustomerResultMap"
+		parameterType="PotentialCustomerQuery">
+		select o.id, o.name,o.successRate,o.remark,o.linkMan,o.linkManTel,o.inputTime,
+		e.id eId,e.realName eRealName,s.id sId,s.name sName 
+		<include refid="commonSql" />
+		order by ${sort} ${order}
+		limit #{begin},#{end}
+	</select>
+
+
+	<resultMap type="PotentialCustomer" id="potentialCustomerResultMap">
+		<!-- 处理多方 -->
+		<id property="id" column="id" />
+		<result property="name" column="name" />
+		<result property="successRate" column="successRate" />
+		<result property="remark" column="remark" />
+		<result property="linkMan" column="linkMan" />
+		<result property="linkManTel" column="linkManTel" />
+		<result property="inputTime" column="inputTime" />
+		<!--处理一方  InputUser-->
+		<association property="inputUser" javaType="Employee">
+			<id property="id" column="e.id" />
+			<result property="realName" column="eRealName" />
+		</association>
+		<!-- 处理一方: 明细 客户来源 -->
+		<association property="customerSource" javaType="SystemDictionaryItem">
+			<id property="id" column="sId" />
+			<result property="name" column="sName" />
+		</association>
+	</resultMap>
+</mapper>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.GuaranteeItemMapper">
+	<select id="save" parameterType="GuaranteeItem">
+		insert into t_guarantee_item(guaranteeTime,content,solve,guarantee_id) values(#{guaranteeTime},#{content},#{solve},#{guarantee.id})
+	</select>
+
+	<update id="update" parameterType="GuaranteeItem">
+		update t_guarantee_item set guaranteeTime=#{guaranteeTime},content=#{content},solve=#{solve},guarantee_id=#{guarantee.id} where id=#{id}
+	</update>
+
+	<delete id="delete" parameterType="long">
+		delete from t_guarantee_item where id=#{id}
+	</delete>
+	<!-- 暂时先 改成这样 后面还要改 -->
+	<select id="get" parameterType="long" resultType="GuaranteeItem">
+		select m.* from t_guarantee_item m where m.id=#{id}
+	</select>
+
+	<select id="getAll" resultType="GuaranteeItem">
+		select m.* from t_guarantee_item m
+	</select>
+
+</mapper>

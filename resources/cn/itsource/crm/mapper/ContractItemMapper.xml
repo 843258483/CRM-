@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.ContractItemMapper">
+
+	<insert id="save" parameterType="ContractItem">
+		INSERT INTO t_contract_item 
+			(payTime, money, scale, isPayment, contract_id,customer_id)
+		VALUES (#{payTime}, #{money}, #{scale}, #{isPayment}, #{contract.id},#{customer.id})
+	</insert>
+
+	<update id="update" parameterType="ContractItem">
+		update t_contract_item set
+			payTime=#{payTime}, money=#{money}, scale=#{scale}, isPayment=#{isPayment}, contract_id=#{contract.id}
+		where id=#{id}
+	</update>
+
+	<delete id="delete" parameterType="long">
+		delete from t_contract_item where id=#{id}
+	</delete>
+	
+		<!-- 暂时先 改成这样  后面还要改 -->
+	<select id="get" parameterType="long" resultType="ContractItem">
+		select * from t_contract_item where id=#{id}
+	</select>
+
+	<select id="getAll" resultType="ContractItem">
+		select * from t_contract_item 
+	</select>
+	
+</mapper>

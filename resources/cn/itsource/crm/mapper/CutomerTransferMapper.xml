@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.CutomerTransferMapper">
+
+	<insert id="save" parameterType="CutomerTransfer" useGeneratedKeys="true" keyProperty="id" >
+		insert into t_customertransfer (transReason,transTime,customer_id,transUser_id
+		,oldSeller_id,newSeller_id)
+		 values(#{transReason},#{transTime},#{customer.id},#{transUser.id},#{oldSeller.id},#{newSeller.id})	
+	</insert>
+
+	<update id="update" parameterType="CutomerTransfer">
+		update t_customertransfer set transReason=#{transReason},transTime=#{transTime},customer_id=#{customer.id},
+		transUser_id=#{transUser.id},oldSeller_id=#{oldSeller.id},newSeller_id=#{newSeller.id}  where id = #{id}
+	</update>
+
+	<delete id="delete" parameterType="long">
+		delete from t_customertransfer where
+		id=#{id}
+	</delete>
+
+	<select id="get" parameterType="long" resultType="CutomerTransfer">
+		select o.id,transReason,transTime,customer_id,o.oldSeller_id,transUser_id,o.newSeller_id from
+		t_customertransfer o where o.id=#{id}
+	</select>
+
+	<!-- 基本不用getAll，全部使用findByQuery() -->
+	<select id="getAll" resultType="CutomerTransfer">
+		select o.* from t_customertransfer o
+	</select>
+	<!-- 通过查询条件或总的记录数 -->
+	<select id="findCountByQuery" resultType="int" parameterType="CutomerTransferQuery">
+		select
+		count(o.id) from t_customertransfer o
+		<include refid="commonSql" />
+	</select>
+
+	<!-- 公共sql -->
+	<select id="findLimitByQuery" parameterType="CutomerTransferQuery"  resultMap="CutomerTransferResultMap" >
+SELECT o.id,o.transReason,o.transTime,c.id cId,c.name cName,et.id etId,
+et.realName etRealName,eo.id eoId,eo.realName eoRealName,en.id enId,en.realName enRealName
+from t_customertransfer o
+		<include refid="commonSql" />
+		limit #{begin},#{end}
+	</select>
+	
+	<resultMap type="CutomerTransfer" id="CutomerTransferResultMap">
+		<!-- 处理多方 -->
+		<id property="id" column="id" />
+		<result property="transReason" column="transReason" />
+		<result property="transTime" column="transTime" />
+		<!-- 处理一方  处理 谁负责的移交 -->
+		<association property="transUser" javaType="Employee">
+			<id property="id" column="etId" />
+			<result property="realName" column="etRealName" />
+		</association>
+			<!-- 处理一方  老销售员 -->
+		<association property="newSeller" javaType="Employee">
+			<id property="id" column="enId" />
+			<result property="realName" column="enRealName" />
+		</association>
+			<!-- 处理一方  处理 谁负责的移交 -->
+		<association property="oldSeller" javaType="Employee">
+			<id property="id" column="eoId" />
+			<result property="realName" column="eoRealName" />
+		</association>
+		<!-- 处理一方: 处理要移交的客户 -->
+		<association property="customer" javaType="Customer">
+			<id property="id" column="cId" />
+			<result property="name" column="cName" />
+		</association>
+		
+	</resultMap>
+	
+	<!-- 公共查询条件 -->
+	<sql id="commonSql">
+LEFT JOIN t_customer c ON o.customer_id=c.id
+LEFT JOIN t_employee et ON o.transUser_id=et.id
+LEFT JOIN t_employee eo ON o.oldSeller_id=eo.id
+LEFT JOIN t_employee en ON o.newSeller_id=en.id
+		<where>
+			<!-- 部门的name和sn属性进行like查询 -->
+			<if test="keyword!=null and keyword!=''">
+				and (o.name like concat('%',#{keyword},'%'))
+			</if>
+			<if test="q!=null and q!=''">
+				and (o.name like concat('%',#{q},'%'))
+			</if>
+		</where>
+	</sql>
+	
+	
+</mapper>

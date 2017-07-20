@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<!-- 要拦截的路径 -->
+			<mvc:mapping path="/*" />
+			<mvc:mapping path="/*/*" />
+			<!-- 不拦截的路径 -->
+			<mvc:exclude-mapping path="/resource/*" />
+			<!-- 使用哪个拦截器来拦截 -->
+			<bean class="cn.itsource.crm.web.interceptor.AuthInterceptor" />
+		</mvc:interceptor>
+	</mvc:interceptors>
+
+	<!-- 对静态资源进行放行：静态资源不经过DispatcherServlet -->
+	<mvc:default-servlet-handler />
+	<!-- 告诉spring使用全注解版本：解析@RequestMapping("/hello3") -->
+	<mvc:annotation-driven />
+
+	<!-- spring3.2以后<context:component-scan就包含这个配置 -->
+	<!-- <context:annotation-config/> -->
+
+	<!-- ViewResolver类似于struts2的视图处理类 -->
+	<!-- <result-type name="redirectAction" class="org.apache.struts2.dispatcher.ServletActionRedirectResult"/> -->
+	<!-- 设置视图路径的前后缀，该配置可以让我们写视图路径的时候更简单。 -->
+	<bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/WEB-INF/views/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- 设置上传文件的最大尺寸为1MB -->
+		<property name="maxUploadSize" value="1048576" />
+	</bean>
+
+
+</beans>

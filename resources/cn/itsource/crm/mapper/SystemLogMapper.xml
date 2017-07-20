@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.SystemLogMapper">
+	<sql id="whereSql">
+		<where>
+			<if test="opTimeBegin != null and opTimeBegin !=''">
+				and s.opTime > #{opTimeBegin}
+			</if>
+			<if test="opTimeEnd != null and opTimeEnd !=''">
+				 <![CDATA[
+				 and s.opTime < #{opTimeEnd}
+				]]>
+			</if>
+			<if test="q != null and q !=''">
+				and s.opUser = #{q}
+			</if>
+		</where>
+	</sql>
+
+<!-- 	新增一个数据类型 -->
+	<insert id="save" parameterType="SystemLog" useGeneratedKeys="true"
+		keyProperty="id">
+		insert into t_systemLog
+		(opTime,opIp,function,params,opUser)
+		values(#{opTime},#{opIp},#{function},#{params},#{opUser})
+	</insert>
+<!-- 	修改一个数据类型 -->
+	<update id="update" parameterType="SystemLog">
+		update t_systemLog set
+		opTime=#{opTime},opIp=#{opIp},
+		function=#{function},params=#{params},opUser=#{opUser} where id
+		= #{id}
+	</update>
+<!-- 	删除一个数据类型 -->
+	<delete id="delete" parameterType="long">
+		delete from t_systemLog where
+		id = #{id}
+	</delete>
+<!-- 	通过id查询系统日志的一条数据 -->
+	<select id="get" parameterType="long" resultMap="systemLogResultMap">
+		select s.id,s.opTime,s.opIp,s.function,s.params,e.id
+		eId,e.username eName 
+		from t_systemLog s
+		left join t_employee e
+		on s.opUser = e.id
+		where s.id = #{id}
+	</select>
+
+	<resultMap type="SystemLog" id="systemLogResultMap">
+		<id property="id" column="id" />
+		<result property="opTime" column="opTime" />
+		<result property="opIp" column="opIp" />
+		<result property="function" column="function" />
+		<result property="params" column="params" />
+		<association property="opUser" javaType="Employee">
+			<id property="id" column="eId" />
+			<result property="username" column="eName" />
+		</association>
+	</resultMap>
+
+<!-- 	查询系统日志的所有数据 -->
+	<select id="getAll" parameterType="SystemLogQuery" resultMap="systemLogResultMap">
+		select s.id ,s.opTime,s.opIp,s.function,s.params,e.id
+		eId,e.username eName
+		from t_systemLog s
+		left join t_employee e
+		on s.opUser_id = e.id
+		<include refid="whereSql" />
+	</select>
+<!-- 	分页查询 -->
+	<select id="findLimitByQuery" parameterType="SystemLogQuery" resultMap="systemLogResultMap">
+		select s.id ,s.opTime,s.opIp,s.function,s.params,e.id
+		eId,e.username eName
+		from t_systemLog s
+		left join t_employee e
+		on s.opUser = e.id
+		<include refid="whereSql" />
+		limit #{begin},#{end}
+	</select>
+<!-- 	查询总数据条数 -->
+	<select id="findCountByQuery" parameterType="SystemLogQuery" resultType="int">
+		select count(s.id) from t_systemLog s 
+		left join t_employee e
+		on s.opUser = e.id
+		<include refid="whereSql" />
+	</select>
+	<!-- 删除所有日志 -->
+	<delete id="deleteAll" parameterType="long">
+		delete from t_systemLog 
+	</delete>
+</mapper>

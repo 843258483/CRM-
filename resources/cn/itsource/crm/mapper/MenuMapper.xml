@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.MenuMapper">
+	<insert id="save" parameterType="Menu">
+		insert into
+		t_menu(name,icon,url,parent_id) values(#{name},#{icon},#{url},#{parent.id})
+	</insert>
+
+	<update id="update" parameterType="Menu">
+		update t_menu set
+		name=#{name},icon=#{icon},url=#{url},parent_id=#{parent.id} where id=#{id}
+	</update>
+
+	<delete id="delete" parameterType="long">
+		delete from t_menu where
+		id=#{id}
+	</delete>
+	<!-- 暂时先 改成这样 后面还要改 -->
+	<select id="get" parameterType="long" resultType="Menu">
+		select m.* from
+		t_menu m where m.id=#{id}
+	</select>
+
+	<select id="getAll" resultType="Menu">
+		select m.* from t_menu m
+	</select>
+
+	<!-- 公共的sql语句 -->
+	<sql id="commonSql">
+		<where>
+			<!-- name属性进行like查询 -->
+			<if test="q!=null and q!=''">
+				and (o.name like concat('%',#{q},'%'))
+			</if>
+		</where>
+	</sql>
+
+	<!-- 获取总记录数 -->
+	<select id="findCountByQuery" resultType="int" parameterType="MenuQuery">
+		select count(o.id) from t_menu o
+		<include refid="commonSql" />
+	</select>
+
+	<select id="findLimitByQuery" resultMap="menuResultMap"
+		parameterType="MenuQuery">
+		select o.id,o.name,o.icon,o.url,o.parent_id
+		parent_id,t.name tname
+		from t_menu o
+		left join t_menu t
+		on
+		o.parent_id=t.id
+		<include refid="commonSql" />
+		limit #{begin},#{end}
+	</select>
+
+	<resultMap type="Menu" id="menuResultMap">
+		<!-- 简单属性 -->
+		<id property="id" column="id" />
+		<result property="name" column="name" />
+		<result property="icon" column="icon" />
+		<result property="url" column="url" />
+		<!-- 关联属性 -->
+		<association property="parent" javaType="Menu" column="parent_id">
+			<id property="id" column="parent_id" />
+			<result property="name" column="tname" />
+		</association>
+	</resultMap>
+
+	<select id="findMenuIdByName" resultType="long" parameterType="string">
+		select m.id from t_menu m where m.name like #{menuName}
+	</select>
+</mapper>

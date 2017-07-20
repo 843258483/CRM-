@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.EmployeeMapper">
+
+	<insert id="save" parameterType="Employee" useGeneratedKeys="true"
+		keyProperty="id">
+		insert into
+		t_employee(username,realName,password,tel,email,inputTime,state,department_id)
+		values(#{username},#{realName},#{password},#{tel},#{email},#{inputTime},#{state},#{department.id})
+	</insert>
+
+	<insert id="saveEmployeeRole" parameterType="EmployeeRole">
+		insert into
+		t_employee_role(role_id,employee_id) values(#{roleId},#{employeeId})
+	</insert>
+
+	<update id="update" parameterType="Employee">
+		update t_employee set
+		username=#{username},realName=#{realName},password=#{password},tel=#{tel},email=#{email},inputTime=#{inputTime},state=#{state},department_id=#{department.id}
+		where id=#{id}
+	</update>
+	<delete id="delete" parameterType="long">
+		delete from t_employee where
+		id=#{id}
+	</delete>
+	<!-- 暂时先 改成这样 后面还要改 -->
+	<select id="get" parameterType="long" resultType="Employee">
+		select e.* from
+		t_employee e where e.id=#{id}
+	</select>
+	<select id="getAll" resultType="Employee">
+		select e.* from t_employee e
+	</select>
+	<!-- 公共的sql语句 -->
+	<sql id="commonSql">
+		from t_employee e
+		left join t_department d
+		on e.department_id=d.id
+		<where>
+			<!-- 部门的name和sn属性进行like查询 -->
+			<if test="keyword!=null and keyword!=''">
+				and (e.username like concat('%',#{keyword},'%') or
+				e.realName like
+				concat('%',#{keyword},'%'))
+			</if>
+			<if test="q!=null and q!=''">
+				and (e.username like concat('%',#{q},'%') or e.realName
+				like
+				concat('%',#{q},'%'))
+			</if>
+			<if test="state!=null and state!=-1">
+				and e.state=#{state}
+			</if>
+			<if test="minDate!=null and minDate!=''">
+				and e.inputTime>#{minDate}
+			</if>
+			<if test="maxDate!=null and maxDate!=''">
+				and e.inputTime &lt;#{maxDate}
+			</if>
+			<if test="departmentId!=null and departmentId!=''">
+				and e.department_id=#{departmentId}
+			</if>
+		</where>
+	</sql>
+
+	<!-- 总记录数查询 -->
+	<select id="findCountByQuery" resultType="int" parameterType="EmployeeQuery">
+		select count(e.id)
+		<include refid="commonSql" />
+	</select>
+
+	<!-- 分页查询 -->
+	<!-- limit -->
+	<select id="findLimitByQuery" resultMap="employeeResultMap"
+		parameterType="EmployeeQuery">
+		select e.id,e.username,e.realName,e.password,e.tel,
+		e.email,e.inputTime,e.state,d.id did,d.name dname
+
+		<include refid="commonSql" />
+		order by ${sort} ${order}
+		limit #{begin},#{end}
+	</select>
+	<resultMap type="Employee" id="employeeResultMap">
+		<id property="id" column="id" />
+		<result property="username" column="username" />
+		<result property="realName" column="realName" />
+		<result property="password" column="password" />
+		<result property="tel" column="tel" />
+		<result property="email" column="email" />
+		<result property="inputTime" column="inputTime" />
+		<result property="state" column="state" />
+		<association property="department" column="department_id"
+			javaType="Department">
+			<id property="id" column="did" />
+			<result property="name" column="dname" />
+		</association>
+		<!-- 集合 -->
+		<collection property="roles" column="id" ofType="Role"
+			javaType="arrayList" select="cn.itsource.crm.mapper.RoleMapper.findByEmployeeId" />
+	</resultMap>
+	
+	<!-- List<Menu> findMenusByLoginUserId(Employee loginUser); -->
+	<select id="findMenusByLoginUserId" parameterType="long" resultMap="employeeMenuResultMap">
+		select DISTINCT pm.id,pm.name,pm.icon,m.id
+		mid,m.name mname,m.icon micon,m.url murl
+		from t_employee e
+		join t_employee_role er on er.employee_id=e.id
+		join t_role r
+		on er.role_id=r.id
+		join t_role_permission rp on rp.role_id=r.id
+		join t_permission p on p.id=rp.permission_id
+		join t_menu m on m.id=p.menu_id
+		join t_menu pm on pm.id=m.parent_id
+		where e.id=#{id}
+		order by pm.id
+	</select>
+	
+	<resultMap type="Menu" id="employeeMenuResultMap">
+		<!-- pm.id,pm.name,pm.icon -->
+		<id property="id" column="id" />
+		<result property="name" column="name" />
+		<result property="icon" column="icon" />
+		<!-- m.id mid,m.name mname,m.icon micon,m.url murl -->
+		<!-- private List<Menu> children = new ArrayList<Menu>();// 子菜单 -->
+		<collection property="children" javaType="arraylist" ofType="Menu">
+			<id property="id" column="mid" />
+			<result property="name" column="mname" />
+			<result property="icon" column="micon" />
+			<result property="url" column="murl" />
+		</collection>
+	</resultMap>
+
+	<insert id="saveRole" parameterType="EmployeeRole">
+		insert into t_employee_role(employee_id,role_id) values(#{employeeId},#{roleId})
+	</insert>
+	
+	<select id="findPermissionResouceByLoginUserId" parameterType="long" resultType="string">
+		select DISTINCT re.url
+		from
+		<include refid="findByUserpermission"/>
+	</select>
+	<select id="checkPermission" parameterType="long" resultType="string">
+		select re.name
+		from
+		<include refid="findByUserpermission"/>
+	</select>
+	<sql id="findByUserpermission">
+	t_employee e
+		join t_employee_role er on er.employee_id=e.id
+		join t_role r on er.role_id=r.id
+		join t_role_permission rp on
+		rp.role_id=r.id
+		join t_permission p on p.id=rp.permission_id
+		join t_permission_resource pr on pr.permission_id=p.id
+		join t_resource re on re.id=pr.resource_id
+		where e.id=#{id}
+	
+	</sql>
+	<select id="findByEmployeeRoles" resultType="Role" parameterType="long">
+		select r.id,r.name
+		from t_role r
+		left join
+		t_employee_role er on
+		er.role_id=r.id
+		where
+		er.employee_id=#{employeeId}
+	</select>
+	
+	
+</mapper>

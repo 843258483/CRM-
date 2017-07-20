@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.OrderMapper">
+	<insert id="save" parameterType="Order">
+		INSERT INTO t_order 
+			(sn, signTime, sum, state, customer_id, seller_id, intro)
+		VALUES (#{sn}, #{signTime}, #{sum}, #{state}, #{customer.id}, #{seller.id}, #{contract.id})
+	</insert>
+
+	<update id="update" parameterType="Order">
+		update t_order set
+			sn=#{sn}, signTime=#{signTime}, sum=#{sum}, state=#{state}, 
+			customer_id=#{customer.id},seller_id=#{seller.id}, intro=#{contract.id}
+		where id=#{id}
+	</update>
+
+	<delete id="delete" parameterType="long">
+		delete from t_order where
+		id=#{id}
+	</delete>
+	
+	<!-- 暂时先 改成这样  后面还要改 -->
+	<select id="get" parameterType="long" resultMap="orderResultMap">
+		select o.id, o.sn, o.signTime, o.sum, o.state,
+			   e.id eid, e.realName realName,
+			   c.id cid, c.name cname,
+			   h.id hid, h.sn hsn
+		from t_order o left join t_employee e on o.seller_id = e.id 
+					   left join t_customer c on o.customer_id = c.id
+					   left join t_contract h on o.intro = h.id
+		where o.id=#{id}
+	</select>
+
+	<select id="getAll" resultType="Order">
+		select d.* from t_order d
+	</select>
+
+	
+	<!-- 高级查询部分 -->
+	<!-- 公共的sql语句 -->
+	<sql id="commonSql">
+		from t_order o left join t_employee e on o.seller_id = e.id 
+					   left join t_customer c on o.customer_id = c.id
+					   left join t_contract h on o.intro = h.id
+		<where>
+			<!-- 订单的sn属性进行like查询 -->
+			<if test="keyword!=null and keyword!=''">
+				and o.sn like concat('%',#{keyword},'%') 
+			</if>
+			<!-- 订单的sn属性进行like查询 -->
+			<if test="q!=null and q!=''">
+				and o.sn like concat('%',#{q},'%') 
+			</if>
+			<if test="state!=null and state!=-1">
+				and o.state=#{state}
+			</if>
+			<!-- 根据客户的id来查询 -->
+			<if test="customerId != null and customerId != -1">
+				and o.customer_id = #{customerId}
+			</if>
+			<!-- 根据营销员的id来查询 -->
+			<if test="sellerId != null and sellerId != -1">
+				and o.seller_id = #{sellerId}
+			</if>
+			<!-- 根据时间来查询 -->
+			<if test="beginTime != null">
+				and o.signTime >= #{beginTime}
+			</if>
+			<if test="endTime != null ">
+				and o.signTime &lt;= #{endTime}
+			</if>
+		</where>
+	</sql>
+
+	<!-- 总记录数查询 -->
+	<select id="findCountByQuery" resultType="int" parameterType="OrderQuery">
+		select count(o.id)
+		<include refid="commonSql" />
+	</select>
+
+	<!-- 分页查询 -->
+	<!-- limit -->
+	<select id="findLimitByQuery" resultMap="orderResultMap"
+		parameterType="OrderQuery">
+		select o.id, o.sn, o.signTime, o.sum, o.state,
+			   e.id eid, e.realName realName,
+			   c.id cid, c.name cname,
+			   h.id hid, h.sn hsn
+		<include refid="commonSql" />
+		limit #{begin},#{end}
+	</select>
+
+
+	<resultMap type="Order" id="orderResultMap">
+		
+		<id property="id" column="id" />
+		<result property="sn" column="sn" />
+		<result property="signTime" column="signTime" />
+		<result property="sum" column="sum" />
+		<result property="state" column="state" />
+		
+		<!-- 处理一方:customer_id -->
+		<association property="customer" javaType="Customer">
+			<id property="id" column="cid" />
+			<result property="name" column="cname" />
+		</association>
+		
+		<!-- 处理一方:seller_id  -->
+		<association property="seller" javaType="Employee">
+			<id property="id" column="eid" />
+			<result property="realName" column="realName" />
+		</association>
+		
+		<!-- 处理一方:contract  -->
+		<association property="contract" javaType="Contract">
+			<id property="id" column="hid" />
+			<result property="sn" column="hsn" />
+		</association>
+	</resultMap>
+</mapper>

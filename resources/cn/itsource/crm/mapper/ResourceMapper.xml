@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.itsource.crm.mapper.ResourceMapper">
+	<select id="save" parameterType="Resource">
+		insert into
+		t_resource(name,url,menu_id)
+		values(#{name},#{url},#{menu.id})
+	</select>
+
+	<update id="update" parameterType="Resource">
+		update t_resource set
+		name=#{name},menu_id=#{menu.id} where id=#{id}
+	</update>
+
+	<delete id="delete" parameterType="long">
+		delete from t_resource where
+		id=#{id}
+	</delete>
+	<!-- 暂时先 改成这样 后面还要改 -->
+	<select id="get" parameterType="long" resultType="Resource">
+		select * from
+		t_resource r where id=#{id}
+	</select>
+
+	<select id="getAll" resultType="Resource">
+		select * from t_resource
+	</select>
+
+	<!-- 公共的sql语句 -->
+	<sql id="commonSql">
+		<where>
+			<!-- name属性进行like查询 -->
+			<if test="q!=null and q!=''">
+				and (o.name like concat('%',#{q},'%'))
+			</if>
+		</where>
+	</sql>
+
+	<!-- 获取总记录数 -->
+	<select id="findCountByQuery" resultType="int" parameterType="ResourceQuery">
+		select count(o.id) from t_resource o
+		<include refid="commonSql" />
+	</select>
+
+	<!-- 根据permissionId获取总记录数 -->
+	<select id="findCountByPermissionId" resultType="int"
+		parameterType="long">
+		select count(o.id) from t_resource o left join
+		t_permission_resource pr on
+		pr.resource_id=o.id where
+		pr.permission_id=#{permissionId}
+	</select>
+
+	<select id="findLimitByQuery" resultMap="resourceResultMap"
+		parameterType="ResourceQuery">
+		select o.id,o.name,o.url,m.id mid,m.name mname from t_resource o left
+		join
+		t_menu m on o.menu_id=m.id
+		<include refid="commonSql" />
+		limit #{begin},#{end}
+	</select>
+
+	<resultMap type="Resource" id="resourceResultMap">
+		<id property="id" column="id" />
+		<result property="name" column="name" />
+		<result property="url" column="url" />
+		<association property="menu" column="menu_id" javaType="Menu">
+			<id property="id" column="mid" />
+			<result property="name" column="mname" />
+		</association>
+	</resultMap>
+
+	<select id="findByPermissionId" resultType="Resource"
+		parameterType="long">
+		select r.id,r.name,r.url
+		from t_resource r
+		left join
+		t_permission_resource pr on
+		pr.resource_id=r.id
+		where
+		pr.permission_id=#{permissionId}
+	</select>
+
+	<insert id="saveResource" parameterType="Resource">
+		insert into
+		t_resource(name,url) values
+		(#{name},#{url})
+	</insert>
+	
+	<select id="findChildrenMenu" resultType="Menu">
+		select * from t_menu m where m.parent_id is not null
+	</select>
+	<select id="findCountChildrenMenu" resultType="int">
+		select count(*) from t_menu m where m.parent_id is not null
+	</select>
+</mapper>
